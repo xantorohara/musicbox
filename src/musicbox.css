@@ -1,0 +1,98 @@
+@namespace mx "library://ns.adobe.com/flex/mx";
+
+mx|global {
+    focusThickness: 0;
+    fontFamily: Tahoma;
+    fontWeight: normal;
+}
+
+mx|Application {
+    fontFamily: Arial;
+    fontSize: 11;
+    themeColor: #336699;
+    color: #333333;
+}
+
+mx|ToolTip {
+    cornerRadius: 5;
+    backgroundColor: #EEEEEE;
+}
+
+mx|Alert {
+    color: #333333;
+    backgroundColor: #A0A0A0;
+    headerColors: #808080, #808080;
+    headerHeight: 20;
+    dropShadowEnabled: true;
+    dropShadowColor: #808080;
+    cornerRadius: 5;
+    borderStyle: solid;
+    borderThickness: 1;
+    borderColor: #808080;
+    footerColors: #808080, #EEEEEE;
+    titleStyleName: "alertTitle";
+}
+
+.alertTitle {
+    fontWeight: bold;
+    color: #EEEEEE;
+}
+
+mx|VScrollBar {
+    thumbIcon: Embed(source = 'images/slider.png');
+    thumbSkin: Embed(source = 'images/slider_monoreils.png');
+    trackSkin: Embed(source = 'images/slider_reils.png');
+}
+
+mx|Button {
+    fontWeight: normal;
+}
+
+mx|Button.cursor {
+    fillColors: #FF0000, #FF0000, #FF0000, #FF0000;
+    fillAlphas: 1, 1, 1, 1;
+}
+
+mx|Button.playstop {
+    skin: Embed(source = 'images/btn_play.png');
+    downSkin: Embed(source = 'images/btn_play_down.png');
+    selectedDownSkin: Embed(source = 'images/btn_stop_down.png');
+    selectedOverSkin: Embed(source = 'images/btn_stop_down.png');
+    selectedUpSkin: Embed(source = 'images/btn_stop_down.png');
+}
+
+mx|Button.instrument {
+    skin: Embed(source = 'images/btn_shkatulka.png');
+    downSkin: Embed(source = 'images/btn_shkatulka_down.png');
+    selectedDownSkin: Embed(source = 'images/btn_piano_down.png');
+    selectedOverSkin: Embed(source = 'images/btn_piano.png');
+    selectedUpSkin: Embed(source = 'images/btn_piano.png');
+}
+
+mx|Button.library {
+    skin: Embed(source = 'images/btn_library.png');
+    downSkin: Embed(source = 'images/btn_library_down.png');
+    selectedDownSkin: Embed(source = 'images/btn_library_down.png');
+    selectedOverSkin: Embed(source = 'images/btn_library_down.png');
+    selectedUpSkin: Embed(source = 'images/btn_library_down.png');
+}
+
+mx|Button.save {
+    skin: Embed(source = 'images/btn_save.png');
+    downSkin: Embed(source = 'images/btn_save_down.png');
+    selectedDownSkin: Embed(source = 'images/btn_save_down.png');
+    selectedOverSkin: Embed(source = 'images/btn_save_down.png');
+    selectedUpSkin: Embed(source = 'images/btn_save_down.png');
+}
+
+mx|Button.button {
+    skin: Embed(source = 'images/button.png');
+    downSkin: Embed(source = 'images/button_down.png');
+    selectedDownSkin: Embed(source = 'images/button_down.png');
+    selectedOverSkin: Embed(source = 'images/button_down.png');
+    selectedUpSkin: Embed(source = 'images/button_down.png');
+    paddingBottom: 0;
+    paddingLeft: 0;
+    paddingRight: 0;
+    paddingTop: 0;
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" backgroundAlpha="0"
+         width="100%" height="100%" verticalScrollPolicy="off" horizontalScrollPolicy="off" verticalAlign="middle">
+    <mx:Script><![CDATA[
+
+        override public function set data(value:Object):void {
+            if (value) {
+                text.text = value.name;
+            }
+            super.data = value;
+        }
+
+        ]]>
+
+    </mx:Script>
+
+    <mx:Image source="@Embed(source='images/note-icon.png')"/>
+
+    <mx:Text id="text" width="100%" height="100%" buttonMode="true" useHandCursor="true" selectable="false"
+             truncateToFit="true"/>
+</mx:HBox>

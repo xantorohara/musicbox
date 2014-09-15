@@ -1,0 +1,185 @@
+<?xml version="1.0"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="470" height="70" borderStyle="solid" borderColor="#000000"
+           mouseDown="mouseDownHandler(event)" mouseUp="mouseUpHandler(event)">
+
+    <mx:Script><![CDATA[
+        import mx.collections.ArrayCollection;
+        import mx.events.FlexEvent;
+
+        import synthesizers.AbstractSynthesizer;
+
+        public var synt:AbstractSynthesizer;
+
+        public var buttons:ArrayCollection = new ArrayCollection();
+
+        public function pushButton(event:FlexEvent):void {
+            buttons.addItem(event.currentTarget);
+        }
+
+        public function mouseDownHandler(event:MouseEvent):void {
+            if (event.target.getRepeaterItem()) {
+                synt.play(event.target.getRepeaterItem().note);
+            }
+        }
+
+        public function mouseUpHandler(event:MouseEvent):void {
+            if (event.target.getRepeaterItem()) {
+                synt.stop(event.target.getRepeaterItem().note);
+            }
+        }
+
+        public function keyDown(event:KeyboardEvent):void {
+            for each (var button:Object in buttons) {
+                if (button.getRepeaterItem().code == event.keyCode) {
+                    if (!button.selected) {
+                        button.selected = true;
+                        synt.play(button.getRepeaterItem().note);
+                    }
+                }
+            }
+        }
+
+        public function keyUp(event:KeyboardEvent):void {
+            for each (var button:Object in buttons) {
+                if (button.getRepeaterItem().code == event.keyCode) {
+                    if (button.selected) {
+                        button.selected = false;
+                        synt.stop(button.getRepeaterItem().note);
+                    }
+                }
+            }
+        }
+
+        public function selectKeys(notes:Array):void {
+            for each (var button:Object in buttons) {
+                for each (var note:Object in notes) {
+                    if (button.getRepeaterItem().note == note) {
+                        button.selected = true;
+                    }
+                }
+            }
+        }
+
+        public function releaseKeys():void {
+            for each (var button:Object in buttons) {
+                if (button.selected) {
+                    button.selected = false;
+                }
+            }
+        }
+
+        protected static const N_DO:String = 'До';
+        protected static const N_LA:String = 'Ля';
+        protected static const N_RE_MI:String = 'Ре♯\nМи♭';
+        protected static const N_FA_SOL:String = 'Фа♯\nСоль♭';
+        protected static const N_DO_RE:String = 'До♯\nРе♭';
+        protected static const N_MI:String = 'Ми';
+        protected static const N_SOL:String = 'Соль';
+        protected static const N_LA_SI:String = 'Ля♯\nСи♭';
+        protected static const N_RE:String = 'Ре';
+        protected static const N_FA:String = 'Фа';
+        protected static const N_SOL_LA:String = 'Соль♯\nЛя♭';
+        protected static const N_SI:String = 'Си';
+
+        [Bindable]
+        [Embed(source="images/black_nota.png")]
+        public var noteBlack:Class;
+
+        [Bindable]
+        [Embed(source="images/black_nota_pressed.png")]
+        public var noteBlackDown:Class;
+
+        [Bindable]
+        [Embed(source="images/do_fa.png")]
+        public var noteDoFa:Class;
+
+        [Bindable]
+        [Embed(source="images/do_fa_pressed.png")]
+        public var noteDoFaDown:Class;
+
+        [Bindable]
+        [Embed(source="images/re_sol_lya.png")]
+        public var noteReSolLa:Class;
+
+        [Bindable]
+        [Embed(source="images/re_sol_lya_pressed.png")]
+        public var noteReSolLaDown:Class;
+
+        [Bindable]
+        [Embed(source="images/mi_si.png")]
+        public var noteMiSi:Class;
+
+        [Bindable]
+        [Embed(source="images/mi_si_pressed.png")]
+        public var noteMiSiLaDown:Class;
+
+        [Bindable]
+        private var dpBlack:Array = [
+            {key: 's', code: 83, note: 1, tip: N_DO_RE, x: 12},
+            {key: 'd', code: 68, note: 3, tip: N_RE_MI, x: 38},
+            {key: 'g', code: 71, note: 6, tip: N_FA_SOL, x: 77},
+            {key: 'h', code: 72, note: 8, tip: N_SOL_LA, x: 103},
+            {key: 'j', code: 74, note: 10, tip: N_LA_SI, x: 129},
+            {key: 'l', code: 76, note: 13, tip: N_DO_RE, x: 168},
+            {key: ';', code: 186, note: 15, tip: N_RE_MI, x: 194},
+            {key: '2', code: 50, note: 18, tip: N_FA_SOL, x: 233},
+            {key: '3', code: 51, note: 20, tip: N_SOL_LA, x: 259},
+            {key: '4', code: 52, note: 22, tip: N_LA_SI, x: 285},
+            {key: '6', code: 54, note: 25, tip: N_DO_RE, x: 324},
+            {key: '7', code: 55, note: 27, tip: N_RE_MI, x: 350},
+            {key: '9', code: 57, note: 30, tip: N_FA_SOL, x: 389},
+            {key: '0', code: 48, note: 32, tip: N_SOL_LA, x: 415},
+            {key: '-', code: 189, note: 34, tip: N_LA_SI, x: 441}
+        ];
+
+        [Bindable]
+        private var dpWhite:Array = [
+            {key: 'z', code: 90, note: 0, tip: N_DO, upSkin: noteDoFa, downSkin: noteDoFaDown},
+            {key: 'x', code: 88, note: 2, tip: N_RE, upSkin: noteReSolLa, downSkin: noteReSolLaDown},
+            {key: 'c', code: 67, note: 4, tip: N_MI, upSkin: noteMiSi, downSkin: noteMiSiLaDown},
+            {key: 'v', code: 86, note: 5, tip: N_FA, upSkin: noteDoFa, downSkin: noteDoFaDown},
+            {key: 'b', code: 66, note:7, tip: N_SOL, upSkin: noteReSolLa, downSkin: noteReSolLaDown},
+            {key: 'n', code: 78, note: 9, tip: N_LA, upSkin: noteReSolLa, downSkin: noteReSolLaDown},
+            {key: 'm', code: 77, note: 11, tip: N_SI, upSkin: noteMiSi, downSkin: noteMiSiLaDown},
+            {key: ',', code: 188, note: 12, tip: N_DO, upSkin: noteDoFa, downSkin: noteDoFaDown},
+            {key: '.', code: 190, note: 14, tip: N_RE, upSkin: noteReSolLa, downSkin: noteReSolLaDown},
+            {key: '/', code: 191, note: 16, tip: N_MI, upSkin: noteMiSi, downSkin: noteMiSiLaDown},
+            {key: 'q', code: 81, note: 17, tip: N_FA, upSkin: noteDoFa, downSkin: noteDoFaDown},
+            {key: 'w', code: 87, note: 19, tip: N_SOL, upSkin: noteReSolLa, downSkin: noteReSolLaDown},
+            {key: 'e', code: 69, note: 21, tip: N_LA, upSkin: noteReSolLa, downSkin: noteReSolLaDown},
+            {key: 'r', code: 82, note: 23, tip: N_SI, upSkin: noteMiSi, downSkin: noteMiSiLaDown},
+            {key: 't', code: 84, note: 24, tip: N_DO, upSkin: noteDoFa, downSkin: noteDoFaDown},
+            {key: 'y', code: 89, note:26, tip: N_RE, upSkin: noteReSolLa, downSkin: noteReSolLaDown},
+            {key: 'u', code: 85, note: 28, tip: N_MI, upSkin: noteMiSi, downSkin: noteMiSiLaDown},
+            {key: 'i', code: 73, note: 29, tip: N_FA, upSkin: noteDoFa, downSkin: noteDoFaDown},
+            {key: 'o', code: 79, note: 31, tip: N_SOL, upSkin: noteReSolLa, downSkin: noteReSolLaDown},
+            {key: 'p', code: 80, note: 33, tip: N_LA, upSkin: noteReSolLa, downSkin: noteReSolLaDown},
+            {key: '[', code: 219, note: 35, tip: N_SI, upSkin: noteMiSi, downSkin: noteMiSiLaDown}
+        ];
+
+        ]]></mx:Script>
+
+    <mx:HBox x="0" y="0" horizontalGap="0">
+        <mx:Repeater id="rpWhite" dataProvider="{dpWhite}">
+            <mx:Button toolTip="{rpWhite.currentItem.tip}"
+                       initialize="pushButton(event)"
+                       skin="{rpWhite.currentItem.upSkin}"
+                       downSkin="{rpWhite.currentItem.downSkin}"
+                       selectedDownSkin="{rpWhite.currentItem.downSkin}"
+                       selectedOverSkin="{rpWhite.currentItem.downSkin}"
+                       selectedUpSkin="{rpWhite.currentItem.downSkin}"/>
+        </mx:Repeater>
+    </mx:HBox>
+
+    <mx:Repeater id="rpBlack" dataProvider="{dpBlack}">
+        <mx:Button y="0" x="{rpBlack.currentItem.x}"
+                   toolTip="{rpBlack.currentItem.tip}"
+                   initialize="pushButton(event)" visible="{rpBlack.currentItem.code}"
+                   skin="{noteBlack}"
+                   downSkin="{noteBlackDown}"
+                   selectedDownSkin="{noteBlackDown}"
+                   selectedOverSkin="{noteBlackDown}"
+                   selectedUpSkin="{noteBlackDown}"/>
+    </mx:Repeater>
+
+</mx:Canvas>

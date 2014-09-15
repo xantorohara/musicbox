@@ -1,0 +1,373 @@
+<?xml version="1.0"?>
+
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:local="*" layout="absolute" width="607" height="412"
+                backgroundColor="#CCCCCC" backgroundImage="@Embed(source='images/digital_music_box_bg.jpg')"
+                historyManagementEnabled="false"
+                creationComplete="init()">
+
+    <mx:Script><![CDATA[
+        import mx.controls.Alert;
+        import mx.events.BrowserChangeEvent;
+        import mx.managers.BrowserManager;
+        import mx.managers.IBrowserManager;
+
+        import synthesizers.AbstractSynthesizer;
+        import synthesizers.musicbox.MusicBoxSynthesizer;
+        import synthesizers.piano.PianoSynthesizer;
+
+        private var bm:IBrowserManager;
+
+        private var playTimer:Timer = new Timer(250, 0);
+
+        [Bindable]
+        private var matrix:Array = [];
+
+        private var syntMusicbox:AbstractSynthesizer = new MusicBoxSynthesizer();
+        private var syntPiano:AbstractSynthesizer = new PianoSynthesizer();
+
+        [Bindable]
+        private var synt:AbstractSynthesizer = syntMusicbox;
+
+
+        private function init():void {
+            playTimer.addEventListener(TimerEvent.TIMER, onPlayTimer);
+            playTimer.addEventListener(TimerEvent.TIMER_COMPLETE, onPlayTimerComplete);
+
+            bm = BrowserManager.getInstance();
+            bm.init();
+
+            if (bm.fragment) {
+                playAction(bm.fragment as String);
+            }
+            if (Security.sandboxType == 'remote') {
+                melodiesService.send();
+            }
+        }
+
+        private function canvasClick(event:MouseEvent):void {
+            if (event.target is Led) {
+                event.target.visible = false;
+            } else {
+                var iX:int = event.localX / Led.SIZE;
+                var iY:int = event.localY / Led.SIZE;
+
+                if (iX > 35) {
+                    return;
+                }
+
+                if (matrix[iY] == undefined) {
+                    matrix[iY] = [];
+                }
+
+                var led:Led = matrix[iY][iX];
+
+                if (led) {
+                    led.visible = !led.visible;
+                } else {
+                    matrix[iY][iX] = led = new Led(iX * Led.SIZE, iY * Led.SIZE);
+                    pane.addChild(led);
+                }
+
+                if (led.visible) {
+                    synt.play(iX);
+                }
+
+                keyboard.selectKeys([iX]);
+
+                setTimeout(function():void {
+                    keyboard.releaseKeys();
+                }, 300);
+
+            }
+            resizePane();
+        }
+
+        private function resizePane():void {
+            pane.height = matrix.length > 15 ? (matrix.length + 10) * Led.SIZE : 20 * Led.SIZE;
+        }
+
+        private function playButtonHandler():void {
+            playAction(textInput.text);
+        }
+
+        private function playAction(melody:String):void {
+            fill(melody);
+            playStopButton.selected = true;
+            play();
+        }
+
+        private function setTemp(temp:uint):void {
+            playTimer.delay = 15000 / temp;
+            tempStepper.value = temp;
+        }
+
+        private function fill(melodyStr:String):void {
+            clear();
+
+            var melodyArr:Array = melodyStr.split('|');
+
+            var options:Array = melodyArr[0].split(',');
+            melodyArr.shift();
+
+            if (options) {
+                if (options.length > 0 && options[0] > 0) {
+                    setTemp(options[0]);
+                }
+
+                instrumentButton.selected = options.length > 1 && options[1] == 1;
+
+                switchInstrument();
+            } else {
+                return;
+            }
+
+            for (var index:String in melodyArr) {
+                melodyArr[index] = melodyArr[index].split(',');
+            }
+
+            for (var i:int = 0; i < melodyArr.length; i++) {
+                matrix[i] = [];
+                resizePane();
+                for (var j:int = 0; j < melodyArr[i].length; j++) {
+                    if (melodyArr[i][j] && melodyArr[i][j].length > 0) {
+                        var note:Number = melodyArr[i][j];
+                        if (note >= 0 && note <= 35) {
+                            var led:Led = matrix[i][note] = new Led(note * Led.SIZE, i * Led.SIZE);
+                            pane.addChild(led);
+                        }
+                    }
+                }
+            }
+        }
+
+        private var redRow:Array = [];
+
+        private function play():void {
+            if (playStopButton.selected) {
+                playTimer.reset();
+                playTimer.repeatCount = matrix.length + 1;
+                ruleButton.y = 0;
+                ruleButton.visible = true;
+                playTimer.start();
+            } else {
+                stop();
+            }
+        }
+
+        private function onPlayTimerComplete(timerEvent:TimerEvent):void {
+            play();
+        }
+
+        private function onPlayTimer(timerEvent:TimerEvent):void {
+            keyboard.releaseKeys();
+            var led:Led;
+            for each (led in redRow) {
+                led.led1();
+            }
+
+            if (playTimer.currentCount > matrix.length) {
+                ruleButton.visible = false;
+                return;
+            }
+
+            var tick:uint = playTimer.currentCount - 1;
+
+            redRow = [];
+            ruleButton.y = tick * Led.SIZE;
+            paneWrapper.verticalScrollPosition = (tick - 10) * Led.SIZE;
+
+            var row:Array = matrix[tick];
+            var notes:Array = [];
+            if (row) {
+                for (var idx:String in row) {
+                    led = row[idx];
+                    if (led && led.visible) {
+                        synt.play(int(idx));
+                        led.led2();
+                        redRow.push(led);
+                        notes.push(idx);
+                    }
+                }
+            }
+            keyboard.selectKeys(notes);
+            dinamicZoom();
+        }
+
+        private function stop():void {
+            playTimer.stop();
+            ruleButton.visible = false;
+
+            for each (var led:Led in redRow) {
+                led.led1();
+            }
+            keyboard.releaseKeys();
+
+            blurImage.reverse();
+        }
+
+        private function clear():void {
+            stop();
+            pane.removeAllChildren();
+            pane.addChild(ruleButton);
+            matrix = [];
+            pane.height = 20 * Led.SIZE;
+        }
+
+        private function saveMyMelody():void {
+            var melody:String = makeMelodyString();
+            if (Security.sandboxType == 'remote') {
+                bm.setFragment(melody);
+                Alert.show(bm.url, "Save this url to bookmarks:");
+            } else {
+                Alert.show(melody, "Melody code:");
+            }
+        }
+
+        private function showPane():void {
+            vs.selectedChild = paneContainer;
+        }
+
+        private function showMelodies():void {
+            if (libraryButton.selected) {
+                vs.selectedChild = melodiesContainer;
+            } else {
+                showPane();
+            }
+        }
+
+        private function makeMelodyString():String {
+            var instrument:uint = 0;
+
+            if (instrumentButton.selected) {
+                instrument = 1;
+            }
+
+            var melodyArray:Array = [tempStepper.value + ',' + instrument];
+
+            for (var i:uint = 0; i < matrix.length; i++) {
+                var row:Array = matrix[i];
+                var melodyRow:Array = [];
+                if (row) {
+                    for (var idx:String in row) {
+                        var led:Led = row[idx];
+                        if (led && led.visible) {
+                            melodyRow.push(idx);
+                        }
+                    }
+                }
+                melodyArray.push(melodyRow.join(','));
+            }
+
+            var melodyString:String = melodyArray.join('|');
+            trace(melodyString);
+            return melodyString;
+        }
+
+        private function onMelodySelected(tileList:TileList):void {
+            showPane();
+            playAction(tileList.selectedItem.code);
+        }
+
+        private function switchInstrument():void {
+            if (instrumentButton.selected) {
+                synt = syntPiano;
+            } else {
+                synt = syntMusicbox;
+            }
+        }
+
+        public function dinamicZoom():void {
+            if (blurImage.isPlaying) {
+                blurImage.reverse();
+            } else {
+                blurImage.play([dinamicImage]);
+            }
+        }
+        ]]></mx:Script>
+
+    <mx:Style source="musicbox.css"/>
+
+    <mx:HTTPService id="melodiesService" url="melodies.xml"/>
+
+    <mx:Blur id="blurImage" duration="100" blurXFrom="0" blurXTo="2.0" blurYFrom="0" blurYTo="2.0"/>
+
+    <mx:Button id="playStopButton" x="250" y="10" styleName="playstop" click="play()" toggle="true"
+               toolTip="Play/Stop"/>
+
+    <mx:Button x="300" y="10" id="instrumentButton" styleName="instrument" click="switchInstrument()" toggle="true"
+               toolTip="Change instrument"/>
+
+    <mx:Button x="350" y="10" toolTip="Library" id="libraryButton" styleName="library" click="showMelodies()"
+               toggle="true"/>
+
+    <mx:Button x="400" y="10" toolTip="Save" styleName="save" click="saveMyMelody()"/>
+
+    <mx:Label x="450" y="10" text="v: 1.0.{Version.BUILD_NUMBER}" color="#808080"/>
+
+    <mx:ViewStack id="vs" x="3" y="42" width="505" height="293">
+
+        <mx:Box id="paneContainer" width="100%" height="100%" paddingLeft="12" paddingTop="18">
+            <mx:Box id="paneWrapper" width="490" height="260" horizontalScrollPolicy="off"
+                    verticalPageScrollSize="{4 * Led.SIZE}" verticalLineScrollSize="{Led.SIZE}">
+
+                <local:MatrixPane id="pane" click="canvasClick(event)" height="{20 * Led.SIZE}"
+                                  horizontalScrollPolicy="off" verticalScrollPolicy="off">
+                    <mx:Button id="ruleButton" styleName="cursor" width="100%" height="13" alpha="0.5" visible="false"/>
+                </local:MatrixPane>
+
+            </mx:Box>
+        </mx:Box>
+
+        <mx:VBox id="melodiesContainer" width="100%" height="100%" alpha="1" paddingTop="10"
+                 horizontalAlign="center" backgroundImage="@Embed(source='images/main_panel.png')"
+                 hide="{libraryButton.selected=false}">
+            <mx:TileList id="melodyList" width="479" height="233"
+                         dataProvider="{melodiesService.lastResult?melodiesService.lastResult.melodies.melody:melodies}"
+                         itemRenderer="MelodyRenderer" color="#EEEEEE" rollOverColor="#afafaf" selectionColor="#b18284"
+                         rowHeight="45" columnWidth="150" textAlign="left"
+                         itemClick="onMelodySelected(melodyList)"
+                         backgroundImage="@Embed(source='images/melodies_panel.png')"/>
+
+            <mx:Button label="Cancel" styleName="button" click="showPane()" skin="@Embed(source='images/button.png')"
+                       color="#666666"/>
+        </mx:VBox>
+
+    </mx:ViewStack>
+
+    <local:Piano id="keyboard" x="14" y="330" synt="{synt}"/>
+
+    <mx:HBox id="editor" x="12" y="330" width="480" height="72" verticalAlign="middle" visible="false"
+             show="{textInput.text=makeMelodyString()}">
+        <mx:TextArea id="textInput" width="100%" height="72" change="fill(textInput.text)" maxChars="10000"/>
+    </mx:HBox>
+
+    <mx:VBox right="0" top="0" width="100" height="100%" horizontalAlign="center"
+             paddingTop="10" paddingRight="5" paddingBottom="5" paddingLeft="2" verticalGap="0">
+
+        <mx:Image id="dinamicImage" source="@Embed(source='images/dinamik.png')" doubleClickEnabled="true"
+                  doubleClick="{editor.visible=event.ctrlKey}" smoothBitmapContent="true"/>
+
+        <mx:Spacer height="20"/>
+
+        <mx:NumericStepper id="tempStepper" width="50" paddingLeft="5"
+                           value="60" minimum="10" maximum="300" stepSize="10"
+                           color="#EEEEEE"
+                           upArrowSkin="@Embed(source='images/stepper_up.png')"
+                           downArrowSkin="@Embed(source='images/stepper_down.png')"
+                           borderSkin="@Embed(source='images/stepper_bg.png')"
+                           change="{playTimer.delay=15000/tempStepper.value}"/>
+
+        <mx:Label text="tempo" color="#FFFFFF"/>
+
+        <mx:Spacer height="100%"/>
+
+    </mx:VBox>
+
+    <mx:ArrayCollection id="melodies">
+        <mx:Object name="Silent" code=""/>
+        <mx:Object name="Musicbox"
+                   code="100|23,11|25|18,26|25|14,23||18||11||18||14||18,23||10,22||18||13||18||8||18||10||18||23,11|25|18,26|25|14,23||18||11||18||14||18,23||31,7||16||11||16||9||16||10||16||23,11|25|18,26|25|14,23||18||11||18||14||18,23||10,22||18||13||18||8||18||10||18||23,11|25|26,18|25|14,23||18||11||18||14||18,23||35,7||16||11||16||7||16||13,33||16,31||9,30||18||14||18||9||18||28,14||26,18||10,26||18||13||18||13,25||18||10||18,23||35,7||16||11||16||7||16||33,13||16,31||9,30||18||14||18||9||18||28,14||18,26||10,26||18||13||18||13,25||18||10||18"/>
+        <mx:Object name="Kin-Dza-Dza!"
+                   code="90|20,27,23||28,20,23||3||||20,27,23||28,20,23||3||||20,27,23||28,20,23||3,28,20,23||20,30,23||20,30,23||28,20,23||3,28,20,23||20,27,23||25,22,19||19,22,27||3||||25,22,19||19,22,27||3||||25,22,19||19,22,27||27,3,19,22||28,22,19||28,22,19||19,22,27||27,3,19,22||25,22,19||20,25,17||20,17,23||3||||20,25,17||20,17,23||3||||28,1,35||28,34||28,34||1,35||35,25,3||25,34||25,34||3||8,35,27||25,34||25,34||32,23||32,3,23|||||||"/>
+    </mx:ArrayCollection>
+</mx:Application>
