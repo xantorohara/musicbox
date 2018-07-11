@@ -1,4 +1,3 @@
-musicbox
-========
+# MusicBox
 
-Digital musicbox
+[Digital MusicBox](https://xantorohara.github.io/musicbox/)
